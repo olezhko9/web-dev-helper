@@ -1,2 +1,2 @@
 del "C:\Users\Oleg Naumov\AppData\Roaming\Sublime Text 3\Packages\User\web_dev_helper.py"
-copy /Y "D:\_main_\Python Code\plugin\web_dev_helper.py" "C:\Users\Oleg Naumov\AppData\Roaming\Sublime Text 3\Packages\User\web_dev_helper.py"
+copy /Y "D:\_main_\Python Code\web-dev-helper\web_dev_helper.py" "C:\Users\Oleg Naumov\AppData\Roaming\Sublime Text 3\Packages\User\web_dev_helper.py"
