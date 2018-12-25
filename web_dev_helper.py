@@ -26,7 +26,7 @@ class WebDevHelperCommand(sublime_plugin.WindowCommand):
         if command_position.begin() == command_position.end():
             return None
         line = self.view.substr(self.view.line(command_position.end())).lower()
-        if re.search(re.compile(self.command_text + ':'), line):
+        if re.search(re.compile(self.command_text + '[\w-]*:'), line):
             return 'css'
         elif re.search(re.compile('\.' + self.command_text + '[\.\(]'), line):
             return 'js'
@@ -68,16 +68,20 @@ class WebDevHelperCommand(sublime_plugin.WindowCommand):
         command_parameters = {}
         try:
             bs = BeautifulSoup(html_text, features="html.parser")
-            dt_list = bs.select('dt')
+            dt_list = bs.select('dl')[0].select('dt')
             dd_list = bs.select('dd')
             for dt, dd in zip(dt_list, dd_list):
-                parameter_title = dt.findChild().getText()
+                parameter_title = ""
+                for child in dt.children:
+                    parameter_title = child.getText().replace('<', '&lt;').replace('>', '&gt;')
+                    if len(parameter_title) > 0:
+                        break
                 parameter_description = dd.getText().replace('<', '&lt;').replace('>', '&gt;')
                 command_parameters[parameter_title] = parameter_description
 
         except IndexError:
             pass
-        print(command_parameters.keys())
+        # print(command_parameters.keys())
         return command_parameters
 
     def get_command_description(self, command_text, command_type):
@@ -109,7 +113,7 @@ class WebDevHelperCommand(sublime_plugin.WindowCommand):
             else:
                 command_parameters = command_parameters_none
 
-        return command_summary, command_parameters
+        return [command_summary, command_parameters]
 
     def show_command_description(self, content):
         cursor_text_point = self.view.sel()[0]
@@ -119,13 +123,13 @@ class WebDevHelperCommand(sublime_plugin.WindowCommand):
 
         self.view.show_popup(content=content,
                              location=cursor_zero_col,
-                             max_width=int(viewport_width / 2),
+                             max_width=viewport_width,
                              max_height=300)
 
     def run(self):
         self.command_pos = self.view.sel()[0]
         self.command_text = self.get_command_text(self.command_pos)
         self.command_type = self.get_command_type(self.command_pos)
-
+        print(self.command_text, self.command_type)
         content = self.get_command_description(self.command_text, self.command_type)[0]
         self.show_command_description(content)
