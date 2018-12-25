@@ -45,11 +45,48 @@ class WebDevHelperCommand(sublime_plugin.WindowCommand):
         else:
             return None
 
-    def get_command_description(self, command_text, command_type):
-        command_description = "Похоже, здесь нечего показывать."
+    def extract_command_summary(self, html_text, command_text):
+        command_summary = None
+        try:
+            bs = BeautifulSoup(html_text, features="html.parser")
+            try_count = 0
+            html_selector = '#wikiArticle > p'
+            is_description = -1
+            while is_description == -1 and try_count < 3:
+                command_summary = bs.select(html_selector)[try_count].getText().replace('<', '&lt;').replace(
+                    '>', '&gt;')
+                is_description = command_summary.lower().find(command_text)
+                try_count += 1
+            if is_description != -1:
+                return command_summary
+            else:
+                return None
+        except IndexError:
+            return None
 
+    def extract_command_parameters(self, html_text, command_type):
+        command_parameters = {}
+        try:
+            bs = BeautifulSoup(html_text, features="html.parser")
+            dt_list = bs.select('dt')
+            dd_list = bs.select('dd')
+            for dt, dd in zip(dt_list, dd_list):
+                parameter_title = dt.findChild().getText()
+                parameter_description = dd.getText().replace('<', '&lt;').replace('>', '&gt;')
+                command_parameters[parameter_title] = parameter_description
+
+        except IndexError:
+            pass
+        print(command_parameters.keys())
+        return command_parameters
+
+    def get_command_description(self, command_text, command_type):
+        command_summary_none = "Похоже, здесь нечего показывать..."
+        command_summary = ""
+        command_parameters_none = {'Как жаль': 'Похоже, здесь нет атрибуртов...'}
+        command_parameters = None
         if command_text is None or command_type is None:
-            return command_description
+            return command_summary_none
 
         mozila_catalog = {
             'root': 'https://developer.mozilla.org/en-US/docs/Web/',
@@ -63,24 +100,16 @@ class WebDevHelperCommand(sublime_plugin.WindowCommand):
 
         for u in url_catalog.get(command_type):
             url = base_url + u + command_text
-            print(url)
-            try:
-                response = requests.get(url)
-                bs = BeautifulSoup(response.text, features="html.parser")
-                try_count = 0
-                html_selector = '#wikiArticle > p'
-                is_description = -1
-                while is_description == -1 and try_count < 2:
-                    command_description = bs.select(html_selector)[try_count].getText().replace('<', '&lt;').replace(
-                        '>', '&gt;')
-                    is_description = command_description.lower().find(command_text)
-                    try_count += 1
-                if is_description != -1:
-                    break
-            except IndexError:
-                command_description = "Похоже, здесь нечего показывать..."
+            response = requests.get(url)
 
-        return command_description
+            command_summary = self.extract_command_summary(response.text, command_text)
+            if command_summary is not None:
+                command_parameters = self.extract_command_parameters(response.text, command_type)
+                break
+            else:
+                command_parameters = command_parameters_none
+
+        return command_summary, command_parameters
 
     def show_command_description(self, content):
         cursor_text_point = self.view.sel()[0]
@@ -98,5 +127,5 @@ class WebDevHelperCommand(sublime_plugin.WindowCommand):
         self.command_text = self.get_command_text(self.command_pos)
         self.command_type = self.get_command_type(self.command_pos)
 
-        content = self.get_command_description(self.command_text, self.command_type)
+        content = self.get_command_description(self.command_text, self.command_type)[0]
         self.show_command_description(content)
