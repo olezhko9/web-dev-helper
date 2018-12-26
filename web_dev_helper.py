@@ -18,7 +18,6 @@ class WebDevHelperCommand(sublime_plugin.WindowCommand):
 
     def __init__(self, window):
         super().__init__(window)
-        self.view = self.window.active_view()
         self.command_text = None
         self.command_type = None
         self.command_pos = None
@@ -91,6 +90,7 @@ class WebDevHelperCommand(sublime_plugin.WindowCommand):
         command_parameters_none = {"There are no attributes": 'Check out the selected fragment.'}
         command_parameters = None
         if command_text is None or command_type is None:
+            self.url = ""
             return [command_summary_none, command_parameters_none]
 
         mozila_catalog = {
@@ -146,6 +146,7 @@ class WebDevHelperCommand(sublime_plugin.WindowCommand):
                              on_navigate=webbrowser.open)
 
     def run(self):
+        self.view = self.window.active_view()
         self.command_pos = self.view.sel()[0]
         self.command_text = self.get_command_text(self.command_pos)
         self.command_type = self.get_command_type(self.command_pos)
