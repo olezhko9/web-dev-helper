@@ -12,7 +12,7 @@ site_packages_full_path = \
 sys.path.insert(0, site_packages_full_path + 'Lib\site-packages')
 import requests
 from bs4 import BeautifulSoup
-
+import webbrowser
 
 class WebDevHelperCommand(sublime_plugin.WindowCommand):
 
@@ -22,6 +22,7 @@ class WebDevHelperCommand(sublime_plugin.WindowCommand):
         self.command_text = None
         self.command_type = None
         self.command_pos = None
+        self.url = None
 
     def get_command_type(self, command_position):
         if command_position.begin() == command_position.end():
@@ -103,8 +104,8 @@ class WebDevHelperCommand(sublime_plugin.WindowCommand):
         base_url = url_catalog.get('root')
 
         for u in url_catalog.get(command_type):
-            url = base_url + u + command_text
-            response = requests.get(url)
+            self.url = base_url + u + command_text
+            response = requests.get(self.url)
 
             command_summary = self.extract_command_summary(response.text, command_text)
             if command_summary is not None:
@@ -127,7 +128,7 @@ class WebDevHelperCommand(sublime_plugin.WindowCommand):
             parameters_html += "<h3>" + key + "</h3><p>" + content[1].get(key) + "</p>\n"
 
         html_content = """
-        <h2>""" + self.command_text + """</h2>
+        <a href=\"""" + self.url + """\">""" + self.command_text + """</a>
         <div>
            <p>
         """ + content[0] + \
@@ -141,7 +142,8 @@ class WebDevHelperCommand(sublime_plugin.WindowCommand):
         self.view.show_popup(content=html_content,
                              location=cursor_zero_col,
                              max_width=viewport_width,
-                             max_height=300)
+                             max_height=300,
+                             on_navigate=webbrowser.open)
 
     def run(self):
         self.command_pos = self.view.sel()[0]
