@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sublime
 import sublime_plugin
 import re
@@ -81,16 +82,15 @@ class WebDevHelperCommand(sublime_plugin.WindowCommand):
 
         except IndexError:
             pass
-        # print(command_parameters.keys())
         return command_parameters
 
     def get_command_description(self, command_text, command_type):
-        command_summary_none = "Похоже, здесь нечего показывать..."
+        command_summary_none = "There is no information to show."
         command_summary = ""
-        command_parameters_none = {'Как жаль': 'Похоже, здесь нет атрибуртов...'}
+        command_parameters_none = {"There are no attributes": 'Check out the selected fragment.'}
         command_parameters = None
         if command_text is None or command_type is None:
-            return command_summary_none
+            return [command_summary_none, command_parameters_none]
 
         mozila_catalog = {
             'root': 'https://developer.mozilla.org/en-US/docs/Web/',
@@ -109,10 +109,11 @@ class WebDevHelperCommand(sublime_plugin.WindowCommand):
             command_summary = self.extract_command_summary(response.text, command_text)
             if command_summary is not None:
                 command_parameters = self.extract_command_parameters(response.text, command_type)
+                if len(command_parameters) == 0:
+                    command_parameters = command_parameters_none
                 break
             else:
                 command_parameters = command_parameters_none
-
         return [command_summary, command_parameters]
 
     def show_command_description(self, content):
@@ -121,7 +122,23 @@ class WebDevHelperCommand(sublime_plugin.WindowCommand):
         cursor_zero_col = self.view.text_point(cursor_line, 0)
         viewport_width = self.view.viewport_extent()[0]
 
-        self.view.show_popup(content=content,
+        parameters_html = ""
+        for key in content[1]:
+            parameters_html += "<h3>" + key + "</h3><p>" + content[1].get(key) + "</p>\n"
+
+        html_content = """
+        <h2>""" + self.command_text + """</h2>
+        <div>
+           <p>
+        """ + content[0] + \
+        """
+           </p>
+        """ + parameters_html + \
+        """
+        </div>
+        """
+
+        self.view.show_popup(content=html_content,
                              location=cursor_zero_col,
                              max_width=viewport_width,
                              max_height=300)
@@ -130,6 +147,6 @@ class WebDevHelperCommand(sublime_plugin.WindowCommand):
         self.command_pos = self.view.sel()[0]
         self.command_text = self.get_command_text(self.command_pos)
         self.command_type = self.get_command_type(self.command_pos)
-        print(self.command_text, self.command_type)
-        content = self.get_command_description(self.command_text, self.command_type)[0]
+        # print(self.command_text, self.command_type)
+        content = self.get_command_description(self.command_text, self.command_type)
         self.show_command_description(content)
